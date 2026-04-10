@@ -16,7 +16,7 @@
   --muted:#8a857c; --border:#d4cec4; --white:#fff;
   --sh:0 1px 3px rgba(15,14,12,.07),0 4px 16px rgba(15,14,12,.05);
   --sh-lg:0 8px 32px rgba(15,14,12,.14);
-  --sidebar-w:260px;
+  --sidebar-w:240px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.5}
@@ -100,7 +100,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 
 /* ── CONTENT ── */
 .content{flex:1;overflow-y:auto;background:var(--paper)}
-.content-inner{padding:1.5rem;max-width:1200px}
+.content-inner{padding:1.25rem 1.5rem;max-width:100%}
 
 /* ══════════════════════════════════════════
    VIEWS
@@ -126,7 +126,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .btn-danger:hover{background:#ffe0e0}
 
 /* KPI strip */
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.65rem;margin-bottom:1.25rem}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem;margin-bottom:1rem}
 .kpi{background:var(--white);border:1px solid var(--border);border-radius:9px;padding:.8rem 1rem;position:relative;overflow:hidden}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
 .kpi.green::before{background:var(--green)}
@@ -136,7 +136,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);m
 .ks{font-size:.66rem;color:var(--muted);margin-top:.15rem}
 
 /* Cards grid */
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.85rem;margin-bottom:1.25rem}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem;margin-bottom:1rem}
 .card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;cursor:pointer;transition:all .15s;box-shadow:var(--sh)}
 .card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(200,80,26,.1);transform:translateY(-1px)}
 .card.active{border-color:var(--accent);background:var(--accent-light)}
@@ -376,11 +376,14 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
             <div class="stab" onclick="showClientTab('interest',this)">Interest Expense</div>
             <div class="stab" onclick="showClientTab('cashflow',this)">Cash Flow</div>
             <div class="stab" onclick="showClientTab('annual',this)">Annual</div>
-            <div class="stab" onclick="showClientTab('reports',this)" style="color:var(--accent)">⚙ Reports</div>
           </div>
 
           <!-- TAB: LOANS -->
           <div id="ctab-loans" class="ctab active">
+            <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-bottom:.75rem">
+              <button class="btn btn-secondary btn-sm" onclick="exportTabExcel('loans')">📊 Excel</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportTabPDF('loans')">🖨 PDF</button>
+            </div>
             <div class="tbl-wrap">
               <table><thead><tr>
                 <th style="text-align:left">ID</th><th style="text-align:left">Lender</th><th style="text-align:left">Purpose</th>
@@ -392,13 +395,21 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
 
           <!-- TAB: AMORTIZATION -->
           <div id="ctab-amort" class="ctab" style="display:none">
+            <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-bottom:.75rem">
+              <div class="yr-sel" style="margin-right:auto">Filter: <select id="amort-filter" onchange="renderAmortAll()" style="font-family:'DM Mono',monospace;font-size:.78rem;background:var(--paper);border:1px solid var(--border);border-radius:5px;padding:.28rem .55rem;cursor:pointer"><option value="all">All Loans</option></select></div>
+              <button class="btn btn-secondary btn-sm" onclick="exportTabExcel('amort')">📊 Excel</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportTabPDF('amort')">🖨 PDF</button>
+            </div>
             <div id="amort-all-body"></div>
           </div>
 
           <!-- TAB: ST/LT -->
           <div id="ctab-stlt" class="ctab" style="display:none">
             <div class="ph" style="margin-bottom:.75rem">
-              <div></div>
+              <div style="display:flex;gap:.4rem">
+                <button class="btn btn-secondary btn-sm" onclick="exportTabExcel('stlt')">📊 Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportTabPDF('stlt')">🖨 PDF</button>
+              </div>
               <div class="yr-sel">As of: <select id="stlt-yr" onchange="renderSTLT()"></select> <select id="stlt-mo" onchange="renderSTLT()">
                 <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12" selected>Dec</option>
               </select></div>
@@ -413,7 +424,10 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
           <!-- TAB: INTEREST -->
           <div id="ctab-interest" class="ctab" style="display:none">
             <div class="ph" style="margin-bottom:.75rem">
-              <div></div>
+              <div style="display:flex;gap:.4rem">
+                <button class="btn btn-secondary btn-sm" onclick="exportTabExcel('interest')">📊 Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportTabPDF('interest')">🖨 PDF</button>
+              </div>
               <div class="yr-sel">Year: <select id="int-yr" onchange="renderInterest()"></select></div>
             </div>
             <div class="tbl-wrap"><table><thead><tr>
@@ -425,7 +439,10 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
           <!-- TAB: CASH FLOW -->
           <div id="ctab-cashflow" class="ctab" style="display:none">
             <div class="ph" style="margin-bottom:.75rem">
-              <div></div>
+              <div style="display:flex;gap:.4rem">
+                <button class="btn btn-secondary btn-sm" onclick="exportTabExcel('cashflow')">📊 Excel</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportTabPDF('cashflow')">🖨 PDF</button>
+              </div>
               <div class="yr-sel">Year: <select id="cf-yr" onchange="renderCashFlow()"></select></div>
             </div>
             <div class="tbl-wrap"><table><thead><tr>
@@ -436,26 +453,14 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
 
           <!-- TAB: ANNUAL -->
           <div id="ctab-annual" class="ctab" style="display:none">
+            <div style="display:flex;justify-content:flex-end;gap:.4rem;margin-bottom:.75rem">
+              <button class="btn btn-secondary btn-sm" onclick="exportTabExcel('annual')">📊 Excel</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportTabPDF('annual')">🖨 PDF</button>
+            </div>
             <div id="annual-body"></div>
           </div>
 
-          <!-- TAB: REPORTS -->
-          <div id="ctab-reports" class="ctab" style="display:none">
-            <div class="rpt-controls">
-              <div class="fg" style="flex:1;min-width:160px;margin:0"><label class="fg" style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:3px">Company Name</label><input id="rpt-company" style="font-family:'DM Sans',sans-serif;font-size:.82rem;background:var(--paper);border:1px solid var(--border);border-radius:5px;padding:.38rem .6rem;color:var(--ink);width:100%;outline:none"></div>
-              <div><label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:3px">Report Date</label><input id="rpt-date" type="date" style="font-family:'DM Mono',monospace;font-size:.78rem;background:var(--paper);border:1px solid var(--border);border-radius:5px;padding:.38rem .6rem;color:var(--ink);outline:none"></div>
-              <div><label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:3px">Fiscal Year</label><select id="rpt-year" style="font-family:'DM Mono',monospace;font-size:.78rem;background:var(--paper);border:1px solid var(--border);border-radius:5px;padding:.38rem .6rem;color:var(--ink);cursor:pointer"></select></div>
-              <div><label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:3px">Loan (amort)</label><select id="rpt-loan" style="font-family:'DM Mono',monospace;font-size:.78rem;background:var(--paper);border:1px solid var(--border);border-radius:5px;padding:.38rem .6rem;color:var(--ink);cursor:pointer"><option value="all">All Loans</option></select></div>
-            </div>
-            <div class="report-cards">
-              <div class="rpt-card"><div class="rpt-card-head"><span style="font-size:1.1rem">📋</span><div><div style="font-weight:700;font-size:.83rem">Amortization Schedule</div><div style="font-size:.67rem;opacity:.55">Full period breakdown</div></div></div><div class="rpt-card-body"><p style="font-size:.76rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">Opening, payment, principal, interest and ending balance per period. For audit files and lender submissions.</p><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;padding:.5rem" onclick="generateReport('amort')">▶ Preview & Print</button></div></div>
-              <div class="rpt-card"><div class="rpt-card-head"><span style="font-size:1.1rem">⚖️</span><div><div style="font-weight:700;font-size:.83rem">Balance Sheet Disclosure</div><div style="font-size:.67rem;opacity:.55">ST / LT as of report date</div></div></div><div class="rpt-card-body"><p style="font-size:.76rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">Current vs. long-term debt for all loans. For balance sheet notes and financial statement preparation.</p><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;padding:.5rem" onclick="generateReport('stlt')">▶ Preview & Print</button></div></div>
-              <div class="rpt-card"><div class="rpt-card-head"><span style="font-size:1.1rem">📈</span><div><div style="font-weight:700;font-size:.83rem">Interest Expense Summary</div><div style="font-size:.67rem;opacity:.55">Monthly by lender</div></div></div><div class="rpt-card-body"><p style="font-size:.76rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">Month-by-month interest per lender. For P&L accruals, journal entry support and tax schedules.</p><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;padding:.5rem" onclick="generateReport('interest')">▶ Preview & Print</button></div></div>
-              <div class="rpt-card"><div class="rpt-card-head"><span style="font-size:1.1rem">🏛️</span><div><div style="font-weight:700;font-size:.83rem">Portfolio Overview</div><div style="font-size:.67rem;opacity:.55">Executive summary</div></div></div><div class="rpt-card-body"><p style="font-size:.76rem;color:var(--muted);margin-bottom:.75rem;line-height:1.5">All loans: lender, rate, term, payment, total interest and outstanding balance as of report date.</p><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;padding:.5rem" onclick="generateReport('portfolio')">▶ Preview & Print</button></div></div>
-            </div>
-          </div>
-
-        </div><!-- /view-client -->
+          </div><!-- /view-client -->
 
       </div><!-- /content-inner -->
     </div><!-- /content -->
@@ -475,8 +480,7 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
       <div class="form-grid">
         <div class="fg full"><label>Client / Company Name *</label><input class="fi" id="c-name" placeholder="e.g. Atlas Build LLC"></div>
         <div class="fg"><label>Industry</label><input class="fi" id="c-industry" placeholder="e.g. Construction"></div>
-        <div class="fg"><label>Contact Name</label><input class="fi" id="c-contact" placeholder="e.g. John Smith"></div>
-        <div class="fg full"><label>Contact Email</label><input class="fi" id="c-email" type="email" placeholder="client@company.com"></div>
+        <div class="fg"><label>Contact Email</label><input class="fi" id="c-email" type="email" placeholder="client@company.com"></div>
         <div class="fg full"><label>Notes</label><input class="fi" id="c-notes" placeholder="Optional notes"></div>
       </div>
     </div>
@@ -507,17 +511,38 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
         <div class="fg full"><label>Lender *</label><input class="fi" id="l-lender" placeholder="e.g. First National Bank"></div>
         <div class="fg"><label>Loan Amount ($) *</label><input class="fi" id="l-amount" type="number" placeholder="180000"></div>
         <div class="fg"><label>Purpose *</label><input class="fi" id="l-purpose" placeholder="e.g. Excavator"></div>
-        <div class="fg"><label>Rate Type</label><select class="fi" id="l-rate-type"><option value="Fixed">Fixed</option><option value="SOFR">SOFR (variable)</option></select></div>
+        <div class="fg"><label>Rate Type</label><select class="fi" id="l-rate-type">
+              <option value="Fixed">Fixed</option>
+              <option value="SOFR">SOFR (variable)</option>
+              <option value="LIBOR">LIBOR (variable)</option>
+              <option value="Prime">Prime Rate (variable)</option>
+              <option value="Base">Base Rate (variable)</option>
+              <option value="Other">Other (variable)</option>
+            </select></div>
         <div class="fg"><label>Rate / Spread (%) *</label><input class="fi" id="l-rate" type="number" step="0.01" placeholder="6.25"></div>
-        <div class="fg"><label>Repayment</label><select class="fi" id="l-repayment"><option>Monthly</option><option>Quarterly</option><option>Semi-Annual</option><option>Annually</option></select></div>
-        <div class="fg"><label>Term (months) *</label><input class="fi" id="l-term" type="number" placeholder="60"></div>
+        <div class="fg"><label>Repayment</label><select class="fi" id="l-repayment">
+              <option>Monthly</option>
+              <option>Quarterly</option>
+              <option>Semi-Annual</option>
+              <option>Annually</option>
+              <option value="Revolving">Revolving</option>
+            </select></div>
+        <div class="fg"><label>Term *</label>
+            <div style="display:flex;gap:.35rem">
+              <input class="fi" id="l-term" type="number" placeholder="60" style="flex:1">
+              <select class="fi" id="l-term-unit" style="width:80px" onchange="convertTerm()">
+                <option value="months">mo</option>
+                <option value="years">yr</option>
+              </select>
+            </div>
+          </div>
         <div class="fg"><label>Booking Date *</label><input class="fi" id="l-booking" type="date"></div>
         <div class="fg"><label>First Payment Date *</label><input class="fi" id="l-first-payment" type="date"></div>
         <div class="fg"><label>Maturity Date</label><input class="fi" id="l-maturity" type="date"></div>
         <div class="fg"><label>ST Account #</label><input class="fi" id="l-st-acct" placeholder="24001"></div>
         <div class="fg"><label>LT Account #</label><input class="fi" id="l-lt-acct" placeholder="29001"></div>
         <div class="fg full"><label>Security / Collateral</label><input class="fi" id="l-security" placeholder="e.g. Equipment lien"></div>
-        <div class="fg full"><label>Borrower</label><input class="fi" id="l-borrower" placeholder="Company name"></div>
+        <div class="fg full"><label>Notes</label><textarea class="fi" id="l-notes" placeholder="Internal notes about this loan…" rows="2" style="resize:vertical;font-family:'DM Sans',sans-serif"></textarea></div>
       </div>
     </div>
     <div class="m-foot">
@@ -528,6 +553,140 @@ td:first-child{text-align:left;font-family:'DM Sans',sans-serif}
 </div>
 
 <script>
+
+// ═══════════════════════════════════════════════════════════
+// FIX HELPERS
+// ═══════════════════════════════════════════════════════════
+
+// Term unit conversion (years ↔ months)
+function convertTerm() {
+  const unit = document.getElementById('l-term-unit').value;
+  const val  = parseFloat(document.getElementById('l-term').value);
+  if (!val) return;
+  if (unit === 'years') {
+    document.getElementById('l-term').value = Math.round(val / 12);
+    document.getElementById('l-term').placeholder = '5';
+  } else {
+    document.getElementById('l-term').value = Math.round(val * 12);
+    document.getElementById('l-term').placeholder = '60';
+  }
+}
+
+// Get term in months (handle years input)
+function getTermMonths() {
+  const val  = parseInt(document.getElementById('l-term').value);
+  const unit = document.getElementById('l-term-unit')?.value || 'months';
+  return unit === 'years' ? val * 12 : val;
+}
+
+// Rate type display helper
+function rateDisplay(l) {
+  const pct = (parseFloat(l.rate)*100).toFixed(2)+'%';
+  if (l.rate_type === 'Fixed') return pct + ' Fixed';
+  return l.rate_type + ' +' + pct;
+}
+
+// ── AMORT FILTER ────────────────────────────────────────────
+function updateAmortFilter() {
+  const sel = document.getElementById('amort-filter');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">All Loans</option>' +
+    loans.map(l => `<option value="${l.id}">${l.lender} — ${l.purpose||''}</option>`).join('');
+  if (cur && loans.find(l=>l.id===cur)) sel.value = cur;
+}
+
+// ── COLLAPSIBLE AMORT (default collapsed) ───────────────────
+function renderAmortAll() {
+  updateAmortFilter();
+  const filterVal = document.getElementById('amort-filter')?.value || 'all';
+  const targetLoans = filterVal === 'all' ? loans : loans.filter(l => l.id === filterVal);
+  const c = document.getElementById('amort-all-body');
+  if (!targetLoans.length) { c.innerHTML='<div class="empty-state"><div class="icon">📋</div><h3>No loans</h3></div>'; return; }
+  c.innerHTML = targetLoans.map((l,idx) => {
+    const sc = buildSchedule(l);
+    let lastYr = null;
+    const rows = sc.rows.map(r => {
+      const yr = r.date.getFullYear();
+      const brk = lastYr!==null&&yr!==lastYr?' style="border-top:2px solid var(--accent)"':''; lastYr=yr;
+      return `<tr${brk}><td>${r.period===0?'—':r.period}</td><td>${fmtDt(r.date)}</td><td>${yr}</td>
+        <td>${fmtD(r.opening)}</td>
+        <td>${r.period===0?dash(0):dash(r.payment)}</td>
+        <td class="td-grn">${r.period===0?dash(0):dash(r.principal)}</td>
+        <td class="td-acc">${r.period===0?dash(0):dash(r.interest)}</td>
+        <td>${fmtD(r.ending)}</td>
+        <td class="td-mut">${r.period===0?dash(0):dash(r.cumInterest)}</td>
+      </tr>`;
+    }).join('');
+    const tp=sc.rows.reduce((a,r)=>a+r.payment,0),tpr=sc.rows.reduce((a,r)=>a+r.principal,0),ti=sc.rows.reduce((a,r)=>a+r.interest,0);
+    const uid = 'am_'+l.id;
+    return `<div style="margin-bottom:.85rem">
+      <div class="ag-title" onclick="toggleAmort('${uid}')" style="cursor:pointer;user-select:none">
+        <span><span class="dot ${COLORS[idx%COLORS.length]}"></span><strong>${l.lender}</strong> | ${l.purpose||''} | ${l.repayment} | ${fmtD(parseFloat(l.amount))}</span>
+        <span style="display:flex;align-items:center;gap:.75rem">
+          <span style="font-size:.7rem;color:var(--accent)">${(parseFloat(l.rate)*100).toFixed(2)}% ${l.rate_type}</span>
+          <span id="ico_${uid}" style="font-size:.8rem;color:var(--muted)">▶ expand</span>
+        </span>
+      </div>
+      <div id="${uid}" style="display:none">
+      <div class="tbl-wrap" style="border-radius:0 0 9px 9px;margin-bottom:0">
+        <table><thead><tr><th>#</th><th style="text-align:left">Date</th><th>Year</th><th>Opening</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Ending</th><th>Cum. Interest</th></tr></thead>
+        <tbody>${rows}<tr class="total-row"><td colspan="3" style="text-align:left">TOTALS</td><td>—</td><td>${fmtD(tp)}</td><td class="td-grn">${fmtD(tpr)}</td><td class="td-acc">${fmtD(ti)}</td><td>—</td><td>—</td></tr></tbody></table>
+      </div></div></div>`;
+  }).join('');
+}
+
+function toggleAmort(uid) {
+  const el = document.getElementById(uid);
+  const ico = document.getElementById('ico_'+uid);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (ico) ico.textContent = open ? '▶ expand' : '▼ collapse';
+}
+
+// ── PER-TAB EXPORT ──────────────────────────────────────────
+function exportTabPDF(tab) {
+  if (!loans.length) { alert('No loans to export.'); return; }
+  _currentReportType = tab === 'loans' ? 'portfolio' : tab === 'amort' ? 'amort' : tab === 'stlt' ? 'stlt' : tab === 'interest' ? 'interest' : tab === 'cashflow' ? 'interest' : 'portfolio';
+  // Set report company to client name
+  const co = document.getElementById('rpt-company');
+  if (co) co.value = activeClient?.name || '';
+  const dt = document.getElementById('rpt-date');
+  if (dt && !dt.value) dt.value = new Date().toISOString().split('T')[0];
+  const yrSel = document.getElementById('rpt-year');
+  const yrs = getYears();
+  if (yrSel) { yrSel.innerHTML = yrs.map(y=>`<option value="${y}">${y}</option>`).join(''); }
+  const loanSel = document.getElementById('rpt-loan');
+  const filterId = document.getElementById('amort-filter')?.value || 'all';
+  if (loanSel) {
+    loanSel.innerHTML = '<option value="all">All Loans</option>' + loans.map(l=>`<option value="${l.id}">${l.lender}</option>`).join('');
+    if (tab === 'amort' && filterId !== 'all') loanSel.value = filterId;
+  }
+  generateReport(_currentReportType);
+}
+
+function exportTabExcel(tab) {
+  if (!loans.length) { alert('No loans to export.'); return; }
+  if (!window.XLSX) { alert('Excel library loading, please try again.'); return; }
+  const wb = XLSX.utils.book_new();
+  const co = activeClient?.name || 'Client';
+  if (tab === 'amort') {
+    const filterId = document.getElementById('amort-filter')?.value || 'all';
+    const tl = filterId === 'all' ? loans : loans.filter(l=>l.id===filterId);
+    _currentReportType = 'amort';
+    const saved = document.getElementById('rpt-loan');
+    xlAmort(wb, co);
+  } else if (tab === 'stlt') {
+    xlSTLT(wb, co);
+  } else if (tab === 'interest' || tab === 'cashflow') {
+    xlInterest(wb, co);
+  } else {
+    xlPortfolio(wb, co);
+  }
+  XLSX.writeFile(wb, `${co.replace(/\s+/g,'_')}_${tab}_${new Date().toISOString().split('T')[0].replace(/-/g,'')}.xlsx`);
+}
+
 // ═══════════════════════════════════════════════════════════
 // SUPABASE INIT
 // ═══════════════════════════════════════════════════════════
@@ -582,9 +741,17 @@ async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-password').value;
   const msg   = document.getElementById('login-msg');
+  if (!email||!pass) { msg.textContent='Please enter email and password.'; msg.className='auth-msg err'; return; }
   msg.textContent = 'Signing in…'; msg.className = 'auth-msg';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) { msg.textContent = error.message; msg.className = 'auth-msg err'; }
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { msg.textContent = error.message; msg.className = 'auth-msg err'; return; }
+  if (data?.session) {
+    currentUser = data.session.user;
+    await loadUserProfile();
+    showScreen('app');
+    showView('dashboard');
+    loadDashboard();
+  }
 }
 
 async function doSignup() {
@@ -778,7 +945,7 @@ function renderLoansTable() {
   body.innerHTML = loans.map((l,i) => {
     const sc = buildSchedule(l);
     const totInt = sc.rows.reduce((a,r)=>a+r.interest,0);
-    const rd = l.rate_type==='SOFR' ? `SOFR+${(parseFloat(l.rate)*100).toFixed(2)}%` : `${(parseFloat(l.rate)*100).toFixed(2)}%`;
+    const rd = rateDisplay(l);
     return `<tr>
       <td><span class="dot ${COLORS[i%COLORS.length]}"></span>${l.loan_ref||String(i+1).padStart(3,'0')}</td>
       <td>${l.lender}</td><td>${l.purpose||'—'}</td>
@@ -800,7 +967,7 @@ function renderLoansTable() {
 function openAddClient() {
   editingClientId = null;
   document.getElementById('client-modal-title').textContent = 'Add Client';
-  ['c-name','c-industry','c-contact','c-email','c-notes'].forEach(id => document.getElementById(id).value = '');
+  ['c-name','c-industry','c-email','c-notes'].forEach(id => document.getElementById(id).value = '');
   openModal('modal-client');
 }
 
@@ -810,7 +977,7 @@ function openEditClient() {
   document.getElementById('client-modal-title').textContent = 'Edit Client';
   document.getElementById('c-name').value    = activeClient.name||'';
   document.getElementById('c-industry').value= activeClient.industry||'';
-  document.getElementById('c-contact').value = activeClient.contact_name||'';
+  
   document.getElementById('c-email').value   = activeClient.contact_email||'';
   document.getElementById('c-notes').value   = activeClient.notes||'';
   openModal('modal-client');
@@ -822,7 +989,7 @@ async function saveClient() {
   const payload = {
     name,
     industry:      document.getElementById('c-industry').value.trim()||null,
-    contact_name:  document.getElementById('c-contact').value.trim()||null,
+    contact_name: null,
     contact_email: document.getElementById('c-email').value.trim()||null,
     notes:         document.getElementById('c-notes').value.trim()||null,
   };
@@ -845,7 +1012,7 @@ function openAddLoan() {
   editingLoanId = null;
   pendingFile = null;
   document.getElementById('loan-modal-title').textContent = 'Add Loan';
-  ['l-lender','l-amount','l-purpose','l-rate','l-term','l-booking','l-first-payment','l-maturity','l-st-acct','l-lt-acct','l-security','l-borrower']
+  ['l-lender','l-amount','l-purpose','l-rate','l-term','l-booking','l-first-payment','l-maturity','l-st-acct','l-lt-acct','l-security','l-notes']
     .forEach(id => document.getElementById(id).value = '');
   document.getElementById('l-rate-type').value = 'Fixed';
   document.getElementById('l-repayment').value  = 'Monthly';
@@ -872,7 +1039,8 @@ function editLoan(loanId) {
   document.getElementById('l-st-acct').value       = l.st_acct||'';
   document.getElementById('l-lt-acct').value       = l.lt_acct||'';
   document.getElementById('l-security').value      = l.security||'';
-  document.getElementById('l-borrower').value      = l.borrower||'';
+  document.getElementById('l-notes').value         = l.notes||'';
+  
   if (l.file_name) {
     document.getElementById('loan-file-name').textContent = l.file_name;
     document.getElementById('loan-file-tag').style.display = 'flex';
@@ -886,7 +1054,7 @@ async function saveLoan() {
   const lender  = document.getElementById('l-lender').value.trim();
   const amount  = parseFloat(document.getElementById('l-amount').value);
   const rate    = parseFloat(document.getElementById('l-rate').value) / 100;
-  const term    = parseInt(document.getElementById('l-term').value);
+  const term    = getTermMonths();
   const booking = document.getElementById('l-booking').value;
   const firstPay= document.getElementById('l-first-payment').value;
   if (!lender||!amount||!rate||!term||!booking||!firstPay) {
@@ -907,7 +1075,8 @@ async function saveLoan() {
     st_acct:       document.getElementById('l-st-acct').value.trim()||null,
     lt_acct:       document.getElementById('l-lt-acct').value.trim()||null,
     security:      document.getElementById('l-security').value.trim()||null,
-    borrower:      document.getElementById('l-borrower').value.trim()||null,
+    notes:         document.getElementById('l-notes').value.trim()||null,
+    borrower:      activeClient?.name||null,
     file_name:     pendingFile?.name || (editingLoanId ? loans.find(l=>l.id===editingLoanId)?.file_name : null),
     file_data:     pendingFile?.dataUrl || null,
   };
@@ -977,7 +1146,7 @@ function showClientTab(name, el) {
 function getSofr() { return parseFloat(document.getElementById('sofrRate').value || 4.30) / 100; }
 
 function buildSchedule(loan) {
-  const ppy = {Monthly:12,Quarterly:4,'Semi-Annual':2,Annually:1}[loan.repayment]||12;
+  const ppy = {Monthly:12,Quarterly:4,'Semi-Annual':2,Annually:1,Revolving:12}[loan.repayment]||12;
   const mpp = 12/ppy;
   const contractRate = parseFloat(loan.rate);
   const effRate = loan.rate_type==='SOFR' ? contractRate+getSofr() : contractRate;
@@ -1020,6 +1189,7 @@ function getYears() {
   return [...s].sort();
 }
 function populateYrSels() {
+  updateAmortFilter();
   const yrs=getYears();
   ['int-yr','cf-yr','stlt-yr','rpt-year'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
