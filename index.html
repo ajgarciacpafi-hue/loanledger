@@ -214,6 +214,32 @@ td:first-child{text-align:left;font-family:-apple-system,BlinkMacSystemFont,'Seg
 /* Print overlay */
 #print-overlay{display:none;position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto}
 
+/* Loan detail slide-out */
+.loan-drawer{position:fixed;top:52px;right:0;bottom:0;width:680px;max-width:95vw;background:var(--white);border-left:1px solid var(--border);box-shadow:-8px 0 32px rgba(15,14,12,.12);z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease}
+.loan-drawer.open{transform:translateX(0)}
+.ld-head{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--ink);color:var(--paper)}
+.ld-title{font-family:Georgia,serif;font-size:1.05rem}
+.ld-title em{color:var(--accent);font-style:italic}
+.ld-close{background:none;border:none;cursor:pointer;color:#a09a90;font-size:1.1rem;padding:.2rem}
+.ld-close:hover{color:var(--paper)}
+.ld-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--cream);flex-shrink:0}
+.ld-tab{padding:.5rem .85rem;font-size:.75rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap}
+.ld-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.ld-body{flex:1;overflow-y:auto;padding:1rem 1.25rem}
+.ld-panel{display:none}
+.ld-panel.active{display:block}
+.ld-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem}
+.ld-kpi{background:var(--paper);border:1px solid var(--border);border-radius:7px;padding:.65rem .8rem;position:relative;overflow:hidden}
+.ld-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
+.ld-kpi.green::before{background:var(--green)}
+.ld-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.ld-field{display:flex;flex-direction:column;gap:2px}
+.ld-field.full{grid-column:1/-1}
+.ld-fl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.ld-fv{font-size:.82rem;color:var(--ink);font-family:'Courier New',monospace;padding:3px 0;border-bottom:1px solid var(--border)}
+.drawer-overlay{position:fixed;inset:0;background:rgba(15,14,12,.3);z-index:299;display:none}
+.drawer-overlay.open{display:block}
+
 /* Reports panel */
 .report-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
 .rpt-card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--sh)}
@@ -388,7 +414,7 @@ td:first-child{text-align:left;font-family:-apple-system,BlinkMacSystemFont,'Seg
               <table><thead><tr>
                 <th style="text-align:left">ID</th><th style="text-align:left">Lender</th><th style="text-align:left">Purpose</th>
                 <th>Type</th><th>Rate</th><th>Freq</th><th>Term</th><th>Booked</th><th>Maturity</th>
-                <th>Proceeds</th><th>Payment</th><th>Total Interest</th><th>Actions</th>
+                <th>Proceeds</th><th>Payment</th><th>Total Interest</th><th>Doc</th><th>Actions</th>
               </tr></thead><tbody id="loans-table-body"></tbody></table>
             </div>
           </div>
@@ -687,6 +713,224 @@ function exportTabExcel(tab) {
   XLSX.writeFile(wb, `${co.replace(/\s+/g,'_')}_${tab}_${new Date().toISOString().split('T')[0].replace(/-/g,'')}.xlsx`);
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// LOAN DETAIL DRAWER
+// ═══════════════════════════════════════════════════════════
+let activeLoanDetail = null;
+
+function openLoanDetail(loanId) {
+  const l = loans.find(x => x.id === loanId);
+  if (!l) return;
+  activeLoanDetail = l;
+  const sc = buildSchedule(l);
+
+  // Title
+  document.getElementById('ld-title').innerHTML = `${l.lender} <em>— ${l.purpose||''}</em>`;
+
+  // Reset to info tab
+  showLdTab('info', document.querySelector('.ld-tab'));
+
+  // ── INFO PANEL ──────────────────────────────────────────
+  const effRate = l.rate_type==='Fixed' ? parseFloat(l.rate) : parseFloat(l.rate)+getSofr();
+  const totInt  = sc.rows.reduce((a,r)=>a+r.interest,0);
+  const totPay  = sc.rows.reduce((a,r)=>a+r.payment,0);
+  document.getElementById('ld-info').innerHTML = `
+    <div class="ld-kpis">
+      <div class="ld-kpi"><div class="kl">Loan Amount</div><div class="kv" style="font-family:Georgia,serif;font-size:1.2rem">${fmtD(parseFloat(l.amount))}</div></div>
+      <div class="ld-kpi"><div class="kl">Periodic Payment</div><div class="kv" style="font-family:Georgia,serif;font-size:1.2rem">${fmtD(sc.pmt)}</div></div>
+      <div class="ld-kpi green"><div class="kl">Total Interest</div><div class="kv" style="font-family:Georgia,serif;font-size:1.2rem">${fmtD(totInt)}</div></div>
+    </div>
+    <div class="ld-field-grid">
+      <div class="ld-field"><div class="ld-fl">Lender</div><div class="ld-fv">${l.lender}</div></div>
+      <div class="ld-field"><div class="ld-fl">Purpose</div><div class="ld-fv">${l.purpose||'—'}</div></div>
+      <div class="ld-field"><div class="ld-fl">Rate Type</div><div class="ld-fv">${l.rate_type}</div></div>
+      <div class="ld-field"><div class="ld-fl">Rate / Spread</div><div class="ld-fv">${(parseFloat(l.rate)*100).toFixed(2)}%</div></div>
+      <div class="ld-field"><div class="ld-fl">Repayment</div><div class="ld-fv">${l.repayment}</div></div>
+      <div class="ld-field"><div class="ld-fl">Term</div><div class="ld-fv">${l.term_months} months</div></div>
+      <div class="ld-field"><div class="ld-fl">Booking Date</div><div class="ld-fv">${l.booking_date||'—'}</div></div>
+      <div class="ld-field"><div class="ld-fl">First Payment</div><div class="ld-fv">${l.first_payment||'—'}</div></div>
+      <div class="ld-field"><div class="ld-fl">Maturity Date</div><div class="ld-fv">${l.maturity_date||'—'}</div></div>
+      <div class="ld-field"><div class="ld-fl">ST Account #</div><div class="ld-fv">${l.st_acct||'—'}</div></div>
+      <div class="ld-field"><div class="ld-fl">LT Account #</div><div class="ld-fv">${l.lt_acct||'—'}</div></div>
+      <div class="ld-field"><div class="ld-fl">Security</div><div class="ld-fv">${l.security||'—'}</div></div>
+      ${l.notes ? `<div class="ld-field full"><div class="ld-fl">Notes</div><div class="ld-fv" style="white-space:pre-wrap;font-family:inherit">${l.notes}</div></div>` : ''}
+    </div>
+    <div style="display:flex;gap:.4rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
+      <button class="btn btn-secondary btn-sm" onclick="editLoan('${l.id}');closeLoanDetail()">✏️ Edit Loan</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteLoan('${l.id}');closeLoanDetail()">🗑 Remove</button>
+    </div>`;
+
+  // ── AMORT PANEL ─────────────────────────────────────────
+  let lastYr = null;
+  const rows = sc.rows.map(r => {
+    const yr = r.date.getFullYear();
+    const brk = lastYr!==null&&yr!==lastYr?' style="border-top:2px solid var(--accent)"':''; lastYr=yr;
+    return `<tr${brk}><td>${r.period===0?'—':r.period}</td><td>${fmtDt(r.date)}</td>
+      <td>${fmtD(r.opening)}</td>
+      <td>${r.period===0?dash(0):dash(r.payment)}</td>
+      <td class="td-grn">${r.period===0?dash(0):dash(r.principal)}</td>
+      <td class="td-acc">${r.period===0?dash(0):dash(r.interest)}</td>
+      <td>${fmtD(r.ending)}</td></tr>`;
+  }).join('');
+  const tp=sc.rows.reduce((a,r)=>a+r.payment,0),tpr=sc.rows.reduce((a,r)=>a+r.principal,0),ti=sc.rows.reduce((a,r)=>a+r.interest,0);
+  document.getElementById('ld-amort').innerHTML = `
+    <div style="display:flex;gap:.4rem;justify-content:flex-end;margin-bottom:.65rem">
+      <button class="btn btn-secondary btn-sm" onclick="exportSingleLoanPDF('${l.id}')">🖨 PDF</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportSingleLoanXL('${l.id}')">📊 Excel</button>
+    </div>
+    <div class="tbl-wrap"><table><thead><tr>
+      <th>#</th><th style="text-align:left">Date</th><th>Opening</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Ending</th>
+    </tr></thead><tbody>${rows}
+      <tr class="total-row"><td colspan="2" style="text-align:left">TOTALS</td>
+        <td>—</td><td>${fmtD(tp)}</td><td class="td-grn">${fmtD(tpr)}</td><td class="td-acc">${fmtD(ti)}</td><td>—</td>
+      </tr>
+    </tbody></table></div>`;
+
+  // ── ST/LT PANEL ─────────────────────────────────────────
+  const yrs = [...new Set(sc.rows.map(r=>r.date.getFullYear()))].sort();
+  const stltRows = yrs.map(yr => {
+    const asOf = new Date(yr,11,31);
+    const past = sc.rows.filter(r=>r.date<=asOf);
+    if (!past.length) return '';
+    const bal = past[past.length-1].ending; if(bal<0.01) return '';
+    const oneYr = new Date(yr+1,11,31);
+    const st = sc.rows.filter(r=>r.period>0&&r.date>asOf&&r.date<=oneYr).reduce((a,r)=>a+r.principal,0);
+    const lt = Math.max(0,bal-st);
+    return `<tr><td>Dec 31, ${yr}</td><td>${fmtD(bal)}</td><td class="td-acc td-b">${fmtD(st)}</td><td class="td-grn td-b">${fmtD(lt)}</td></tr>`;
+  }).filter(Boolean).join('');
+  document.getElementById('ld-stlt').innerHTML = `
+    <p style="font-size:.72rem;color:var(--muted);margin-bottom:.65rem">ST Acct: <strong>${l.st_acct||'—'}</strong> &nbsp;|&nbsp; LT Acct: <strong>${l.lt_acct||'—'}</strong></p>
+    <div class="tbl-wrap"><table><thead><tr>
+      <th style="text-align:left">Year-End</th><th>Total Balance</th><th>Short-Term (&lt;1yr)</th><th>Long-Term (≥1yr)</th>
+    </tr></thead><tbody>${stltRows||'<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:1rem">No data yet</td></tr>'}</tbody></table></div>`;
+
+  // ── JOURNAL ENTRIES PANEL ───────────────────────────────
+  const firstPmt = sc.rows.find(r=>r.period===1);
+  const startYr  = new Date(l.booking_date||l.start_date).getFullYear();
+  const oneYrOut = new Date(startYr+1,11,31);
+  const stAmt = sc.rows.filter(r=>r.period>0&&r.date>new Date(startYr,11,31)&&r.date<=oneYrOut).reduce((a,r)=>a+r.principal,0);
+
+  function jeCard(title,type,lines){
+    const rows=lines.map(line=>`<div class="je-row">
+      <span class="je-acct">${line.dr?'DR':'CR'}</span>
+      <span>${line.acct}<br><span style="font-size:.68rem;color:var(--muted)">${line.desc}</span></span>
+      <span class="${line.dr?'je-dr':'je-em'}">${line.dr?fmtD(line.amt):'—'}</span>
+      <span class="${!line.dr?'je-cr':'je-em'}">${!line.dr?fmtD(line.amt):'—'}</span>
+    </div>`).join('');
+    return `<div class="je-card">
+      <div class="je-hd"><span>${title}</span><span class="je-type">${type}</span></div>
+      <div class="je-row je-hdr"><span></span><span>Account</span><span style="text-align:right">Debit</span><span style="text-align:right">Credit</span></div>
+      ${rows}</div>`;
+  }
+
+  let jeHtml = jeCard(`Loan Origination — ${fmtDt(new Date(l.booking_date||l.start_date))}`, 'Initial Draw', [
+    {dr:true,  acct:`10000 — Cash`, desc:'Loan proceeds received', amt:parseFloat(l.amount)},
+    {dr:false, acct:`${l.lt_acct||'29001'} — Notes Payable (LT)`, desc:`${l.lender} — ${l.purpose||''}`, amt:parseFloat(l.amount)}
+  ]);
+  if(firstPmt) jeHtml += jeCard(`First Payment — ${fmtDt(firstPmt.date)}`, 'Periodic Payment', [
+    {dr:true,  acct:`60000 — Interest Expense`, desc:'Interest component', amt:firstPmt.interest},
+    {dr:true,  acct:`${l.lt_acct||'29001'} — Notes Payable`, desc:'Principal reduction', amt:firstPmt.principal},
+    {dr:false, acct:`10000 — Cash`, desc:'Payment made', amt:firstPmt.payment}
+  ]);
+  if(stAmt>0) jeHtml += jeCard(`Year-End Reclassification — Dec 31, ${startYr}`, 'Reclass', [
+    {dr:true,  acct:`${l.lt_acct||'29001'} — Notes Payable (LT)`, desc:'Remove from long-term', amt:stAmt},
+    {dr:false, acct:`${l.st_acct||'24001'} — Current Portion LTD`, desc:'Current portion <12mo', amt:stAmt}
+  ]);
+  document.getElementById('ld-je').innerHTML = jeHtml;
+
+  // ── DOCUMENT PANEL ──────────────────────────────────────
+  if (l.file_name && l.file_data) {
+    document.getElementById('ld-doc').innerHTML = `
+      <div class="file-attached" style="margin-bottom:.75rem">
+        <span>📎 ${l.file_name}</span>
+        <button class="file-view-btn" onclick="viewLoanDoc('${l.id}')" style="background:none;border:none;cursor:pointer;color:var(--green);font-weight:600;font-size:.75rem">View</button>
+      </div>
+      <p style="font-size:.72rem;color:var(--muted)">Click View to open the source document in a new tab.</p>`;
+  } else if (l.file_name) {
+    document.getElementById('ld-doc').innerHTML = `
+      <div style="background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:.65rem .85rem;font-size:.78rem;color:var(--muted);margin-bottom:.75rem">
+        📄 ${l.file_name} <em>(file referenced but not yet uploaded)</em>
+      </div>
+      <div class="file-zone"><input type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="attachFileToLoan('${l.id}',this.files[0])">
+        <div style="font-size:1.2rem;margin-bottom:.2rem">📎</div>
+        <strong style="font-size:.78rem">Upload the document</strong>
+      </div>`;
+  } else {
+    document.getElementById('ld-doc').innerHTML = `
+      <div class="file-zone"><input type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="attachFileToLoan('${l.id}',this.files[0])">
+        <div style="font-size:1.4rem;margin-bottom:.25rem">📎</div>
+        <strong style="font-size:.8rem">Attach source document</strong>
+        <p style="font-size:.73rem;color:var(--muted)">PDF, Word, or image</p>
+      </div>`;
+  }
+
+  // Open drawer
+  document.getElementById('loanDrawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+
+function closeLoanDetail() {
+  document.getElementById('loanDrawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  activeLoanDetail = null;
+}
+
+function showLdTab(name, el) {
+  document.querySelectorAll('.ld-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ld-panel').forEach(p=>p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('ld-'+name)?.classList.add('active');
+}
+
+function viewLoanDoc(loanId) {
+  const l = loans.find(x=>x.id===loanId); if(!l||!l.file_data) return;
+  const win = window.open();
+  if (l.file_data.startsWith('data:application/pdf')) {
+    win.document.write(`<iframe src="${l.file_data}" width="100%" height="100%" style="border:none;position:fixed;inset:0"></iframe>`);
+  } else {
+    win.document.write(`<img src="${l.file_data}" style="max-width:100%">`);
+  }
+}
+
+function attachFileToLoan(loanId, file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const l = loans.find(x=>x.id===loanId); if(!l) return;
+    l.file_name = file.name; l.file_data = e.target.result;
+    await sb.from('loans').update({file_name:file.name,file_data:e.target.result}).eq('id',loanId);
+    openLoanDetail(loanId);
+  };
+  reader.readAsDataURL(file);
+}
+
+function exportSingleLoanPDF(loanId) {
+  const sel = document.getElementById('rpt-loan');
+  if (sel) sel.value = loanId;
+  const co = document.getElementById('rpt-company');
+  if (co) co.value = activeClient?.name||'';
+  const dt = document.getElementById('rpt-date');
+  if (dt && !dt.value) dt.value = new Date().toISOString().split('T')[0];
+  const yrSel = document.getElementById('rpt-year');
+  const yrs = getYears();
+  if (yrSel) yrSel.innerHTML = yrs.map(y=>`<option value="${y}">${y}</option>`).join('');
+  _currentReportType = 'amort';
+  generateReport('amort');
+}
+
+function exportSingleLoanXL(loanId) {
+  if (!window.XLSX) return;
+  const wb = XLSX.utils.book_new();
+  const origSel = document.getElementById('rpt-loan');
+  const origVal = origSel?.value;
+  if (origSel) origSel.value = loanId;
+  xlAmort(wb, activeClient?.name||'Client');
+  if (origSel && origVal) origSel.value = origVal;
+  const l = loans.find(x=>x.id===loanId);
+  XLSX.writeFile(wb, `${l?.lender||'Loan'}_Amortization.xlsx`);
+}
+
 // ═══════════════════════════════════════════════════════════
 // SUPABASE INIT
 // ═══════════════════════════════════════════════════════════
@@ -694,13 +938,11 @@ const SUPABASE_URL = 'https://chofikydmzxklmnpjpdz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNob2Zpa3lkbXp4a2xtbnBqcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDk4ODYsImV4cCI6MjA5MTM4NTg4Nn0.1-yqIO8rw6PMuS-vbpk4CooaeqNZPnZi4uOxrKmcPOA';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    storage: window.localStorage,
     storageKey: 'loanledger-auth',
     flowType: 'implicit',
     detectSessionInUrl: false,
     persistSession: true,
     autoRefreshToken: true,
-    lock: async (name, acquireTimeout, fn) => fn(),
   }
 });
 
@@ -949,23 +1191,28 @@ function renderClientView() {
 function renderLoansTable() {
   const body = document.getElementById('loans-table-body');
   if (!loans.length) {
-    body.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:2rem;color:var(--muted)">No loans yet — click "+ Add Loan" to get started.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:2rem;color:var(--muted)">No loans yet — click "+ Add Loan" to get started.</td></tr>`;
     return;
   }
   body.innerHTML = loans.map((l,i) => {
     const sc = buildSchedule(l);
     const totInt = sc.rows.reduce((a,r)=>a+r.interest,0);
     const rd = rateDisplay(l);
-    return `<tr>
+    const hasDoc = l.file_name ? true : false;
+    const docCell = hasDoc
+      ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewLoanDoc('${l.id}')" title="${l.file_name}" style="font-size:.7rem;padding:.25rem .5rem">📎 View</button>`
+      : `<span class="td-mut" style="font-size:.7rem">—</span>`;
+    return `<tr style="cursor:pointer" onclick="openLoanDetail('${l.id}')" title="Click to view loan detail">
       <td><span class="dot ${COLORS[i%COLORS.length]}"></span>${l.loan_ref||String(i+1).padStart(3,'0')}</td>
-      <td>${l.lender}</td><td>${l.purpose||'—'}</td>
+      <td><strong>${l.lender}</strong></td><td>${l.purpose||'—'}</td>
       <td>${l.rate_type}</td><td class="td-acc">${rd}</td>
       <td>${l.repayment}</td><td>${l.term_months}mo</td>
       <td>${l.booking_date||'—'}</td><td>${l.maturity_date||'—'}</td>
       <td class="td-b">${fmtD(parseFloat(l.amount))}</td>
       <td>${fmtD(sc.pmt)}</td>
       <td class="td-acc">${fmtD(totInt)}</td>
-      <td style="text-align:center">
+      <td style="text-align:center">${docCell}</td>
+      <td style="text-align:center" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="editLoan('${l.id}')" style="margin-right:3px">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="deleteLoan('${l.id}')">🗑</button>
       </td>
@@ -1213,33 +1460,7 @@ function refreshClientView() { if(activeClient) renderClientView(); }
 // ═══════════════════════════════════════════════════════════
 // REPORT TABS RENDERING
 // ═══════════════════════════════════════════════════════════
-function renderAmortAll() {
-  const c=document.getElementById('amort-all-body');
-  if(!loans.length){c.innerHTML='<div class="empty-state"><div class="icon">📋</div><h3>No loans</h3></div>';return;}
-  c.innerHTML=loans.map((l,idx)=>{
-    const sc=buildSchedule(l);
-    let lastYr=null;
-    const rows=sc.rows.map(r=>{
-      const yr=r.date.getFullYear();
-      const brk=lastYr!==null&&yr!==lastYr?' style="border-top:2px solid var(--accent)"':'';lastYr=yr;
-      return `<tr${brk}><td>${r.period===0?'—':r.period}</td><td>${fmtDt(r.date)}</td><td>${yr}</td>
-        <td>${fmtD(r.opening)}</td>
-        <td>${r.period===0?dash(0):dash(r.payment)}</td>
-        <td class="td-grn">${r.period===0?dash(0):dash(r.principal)}</td>
-        <td class="td-acc">${r.period===0?dash(0):dash(r.interest)}</td>
-        <td>${fmtD(r.ending)}</td>
-        <td class="td-mut">${r.period===0?dash(0):dash(r.cumInterest)}</td>
-      </tr>`;
-    }).join('');
-    const tp=sc.rows.reduce((a,r)=>a+r.payment,0),tpr=sc.rows.reduce((a,r)=>a+r.principal,0),ti=sc.rows.reduce((a,r)=>a+r.interest,0);
-    return `<div style="margin-bottom:1.5rem">
-      <div class="ag-title"><span><span class="dot ${COLORS[idx%COLORS.length]}"></span><strong>${l.lender}</strong> | ${l.purpose||''} | ${l.repayment}</span><span>${(parseFloat(l.rate)*100).toFixed(2)}% ${l.rate_type}</span></div>
-      <div class="tbl-wrap" style="border-radius:0 0 9px 9px;margin-bottom:0">
-        <table><thead><tr><th>#</th><th style="text-align:left">Date</th><th>Year</th><th>Opening</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Ending</th><th>Cum. Interest</th></tr></thead>
-        <tbody>${rows}<tr class="total-row"><td colspan="3" style="text-align:left">TOTALS</td><td>—</td><td>${fmtD(tp)}</td><td class="td-grn">${fmtD(tpr)}</td><td class="td-acc">${fmtD(ti)}</td><td>—</td><td>—</td></tr></tbody></table>
-      </div></div>`;
-  }).join('');
-}
+// renderAmortAll defined above
 
 function renderSTLT() {
   if(!loans.length){document.getElementById('stlt-body').innerHTML='';document.getElementById('stlt-kpis').innerHTML='';return;}
@@ -1511,5 +1732,29 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');}));
 </script>
+
+<!-- LOAN DETAIL DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeLoanDetail()"></div>
+<div class="loan-drawer" id="loanDrawer">
+  <div class="ld-head">
+    <div class="ld-title" id="ld-title">Loan <em>Detail</em></div>
+    <button class="ld-close" onclick="closeLoanDetail()">✕</button>
+  </div>
+  <div class="ld-tabs">
+    <div class="ld-tab active" onclick="showLdTab('info',this)">Details</div>
+    <div class="ld-tab" onclick="showLdTab('amort',this)">Amortization</div>
+    <div class="ld-tab" onclick="showLdTab('stlt',this)">ST / LT</div>
+    <div class="ld-tab" onclick="showLdTab('je',this)">Journal Entries</div>
+    <div class="ld-tab" onclick="showLdTab('doc',this)">📎 Document</div>
+  </div>
+  <div class="ld-body">
+    <div id="ld-info" class="ld-panel active"></div>
+    <div id="ld-amort" class="ld-panel"></div>
+    <div id="ld-stlt" class="ld-panel"></div>
+    <div id="ld-je" class="ld-panel"></div>
+    <div id="ld-doc" class="ld-panel"></div>
+  </div>
+</div>
+
 </body>
 </html>
