@@ -938,11 +938,14 @@ const SUPABASE_URL = 'https://chofikydmzxklmnpjpdz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNob2Zpa3lkbXp4a2xtbnBqcGR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDk4ODYsImV4cCI6MjA5MTM4NTg4Nn0.1-yqIO8rw6PMuS-vbpk4CooaeqNZPnZi4uOxrKmcPOA';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    storageKey: 'loanledger-auth',
-    flowType: 'implicit',
-    detectSessionInUrl: false,
+    storage: {
+      getItem: (key) => { try { return sessionStorage.getItem(key) || localStorage.getItem(key); } catch(e) { return null; } },
+      setItem: (key, val) => { try { sessionStorage.setItem(key, val); localStorage.setItem(key, val); } catch(e) {} },
+      removeItem: (key) => { try { sessionStorage.removeItem(key); localStorage.removeItem(key); } catch(e) {} },
+    },
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: false,
   }
 });
 
@@ -966,13 +969,15 @@ const COLORS = ['c0','c1','c2','c3','c4','c5','c6','c7','c8','c9'];
 // SUPABASE AUTH
 // ═══════════════════════════════════════════════════════════
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user) {
-    currentUser = session.user;
-    await loadUserProfile();
-    showScreen('app');
-    showView('dashboard');
-    loadDashboard();
-  } else {
+  if (event === 'SIGNED_IN' && session?.user) {
+    if (!currentUser) {
+      currentUser = session.user;
+      await loadUserProfile();
+      showScreen('app');
+      showView('dashboard');
+      loadDashboard();
+    }
+  } else if (event === 'SIGNED_OUT') {
     currentUser = null; currentFirm = null; currentProfile = null;
     showScreen('auth');
   }
@@ -995,14 +1000,20 @@ async function doLogin() {
   const msg   = document.getElementById('login-msg');
   if (!email||!pass) { msg.textContent='Please enter email and password.'; msg.className='auth-msg err'; return; }
   msg.textContent = 'Signing in…'; msg.className = 'auth-msg';
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) { msg.textContent = error.message; msg.className = 'auth-msg err'; return; }
-  if (data?.session) {
-    currentUser = data.session.user;
-    await loadUserProfile();
-    showScreen('app');
-    showView('dashboard');
-    loadDashboard();
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { msg.textContent = error.message; msg.className = 'auth-msg err'; return; }
+    if (data?.user) {
+      currentUser = data.user;
+      await loadUserProfile();
+      showScreen('app');
+      showView('dashboard');
+      loadDashboard();
+    } else {
+      msg.textContent = 'Sign in failed. Please try again.'; msg.className = 'auth-msg err';
+    }
+  } catch(e) {
+    msg.textContent = 'Network error. Please check your connection.'; msg.className = 'auth-msg err';
   }
 }
 
